@@ -24,11 +24,11 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
 
     error Maturity(uint256 maturity);  
 
-    constructor(address u, uint256 m, address a, address r) {
-        underlying = u;
-        maturity = m;
-        adapter = IAdapter(a);
-        redeemer = IRedeemer(r);
+    constructor(address _underlying, uint256 _maturity, address _adapter, address _redeemer) {
+        underlying = _underlying;
+        maturity = _maturity;
+        adapter = IAdapter(_adapter);
+        redeemer = IRedeemer(_redeemer);
     }
 
     /// @notice Post maturity converts an amount of principal tokens to an amount of underlying that would be returned. Returns 0 pre-maturity.
@@ -112,6 +112,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
             }
             maturityRate = adapter.exchangeRateCurrent(cToken);
         }
-        return redeemer.adminRedeem(underlying, maturity, owner, receiver, principalAmount);
+        // some 5095 tokens may have custody of underlying and can just transfer underlying out, while others rely on external custody
+        return redeemer.authRedeem(underlying, maturity, owner, receiver, principalAmount);
     }
 }

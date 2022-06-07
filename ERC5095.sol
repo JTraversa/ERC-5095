@@ -85,7 +85,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         }
         return(underlyingAmount * maturityRate / adapter.exchangeRateCurrent(cToken));
     }
-    /// @notice At or after maturity, Burns principalAmount from owner and sends exactly underlyingAmount of underlying tokens to receiver.
+    /// @notice At or after maturity, Burns principalAmount from `owner` and sends exactly `underlyingAmount` of underlying tokens to `receiver`.
     /// @param underlyingAmount The amount of underlying tokens withdrawn
     /// @param owner The owner of the principal tokens being redeemed
     /// @param receiver The receiver of the underlying tokens being withdrawn
@@ -100,7 +100,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         }
         return redeemer.adminRedeem(underlying, maturity, owner, receiver, (underlyingAmount * maturityRate / adapter.exchangeRateCurrent(cToken)));
     }
-    /// @notice At or after maturity, burns exactly principalAmount of Principal Tokens from from and sends underlyingAmount of underlying tokens to to.
+    /// @notice At or after maturity, burns exactly `principalAmount` of Principal Tokens from `owner` and sends underlyingAmount of underlying tokens to `receiver`.
     /// @param principalAmount The amount of principal tokens being redeemed
     /// @param owner The owner of the principal tokens being redeemed
     /// @param receiver The receiver of the underlying tokens being withdrawn

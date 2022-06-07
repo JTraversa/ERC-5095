@@ -47,7 +47,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         if (block.timestamp < maturity) {
             return 0;
         }
-        return(underlyingAmount * maturityRate / adapter.exchangeRateCurrent(cToken));
+        return (underlyingAmount * maturityRate / adapter.exchangeRateCurrent(cToken));
     }
     /// @notice Post maturity calculates the amount of principal tokens that `owner` can redeem. Returns 0 pre-maturity.
     /// @param owner The address of the owner for which redemption is calculated
@@ -56,7 +56,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         if (block.timestamp < maturity) {
             return 0;
         }
-        return(_balanceOf[owner]);
+        return (_balanceOf[owner]);
     }
     /// @notice Post maturity simulates the effects of redeemption at the current block. Returns 0 pre-maturity.
     /// @param principalAmount the amount of principal tokens redeemed in the simulation
@@ -65,7 +65,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         if (block.timestamp < maturity) {
             return 0;
         }
-        return(principalAmount * (adapter.exchangeRateCurrent(cToken) / maturityRate));
+        return (principalAmount * (adapter.exchangeRateCurrent(cToken) / maturityRate));
     }
     /// @notice Post maturity calculates the amount of underlying tokens that `owner` can withdraw. Returns 0 pre-maturity.
     /// @param address owner The address of the owner for which withdrawal is calculated
@@ -74,7 +74,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         if (block.timestamp < maturity) {
             return 0;
         }
-        return(_balanceOf[owner] * (adapter.exchangeRateCurrent(cToken) / maturityRate));
+        return (_balanceOf[owner] * (adapter.exchangeRateCurrent(cToken) / maturityRate));
     }
     /// @notice Post maturity simulates the effects of withdrawal at the current block. Returns 0 pre-maturity.
     /// @param underlyingAmount the amount of underlying tokens withdrawn in the simulation
@@ -83,7 +83,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         if (block.timestamp < maturity) {
             return 0;
         }
-        return(underlyingAmount * maturityRate / adapter.exchangeRateCurrent(cToken));
+        return (underlyingAmount * maturityRate / adapter.exchangeRateCurrent(cToken));
     }
     /// @notice At or after maturity, Burns principalAmount from `owner` and sends exactly `underlyingAmount` of underlying tokens to `receiver`.
     /// @param underlyingAmount The amount of underlying tokens withdrawn

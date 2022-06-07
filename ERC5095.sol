@@ -22,7 +22,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
     /// @dev address of a cToken
     address public cToken;
 
-    error Maturity(uint256 maturity);  
+    error Maturity(uint256 timestamp);  
 
     constructor(address _underlying, uint256 _maturity, address _adapter, address _redeemer) {
         underlying = _underlying;

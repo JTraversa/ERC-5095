@@ -7,9 +7,9 @@ import "./Interfaces/IERC5095.sol";
 import "./Interfaces/IRedeemer.sol";
 
 abstract contract ERC5095 is ERC20Permit, IERC5095 {
-    /// @dev unix timestamp when the token can be redeemed
+    /// @dev unix timestamp when the ERC5095 token can be redeemed
     uint256 public override immutable maturity;
-    /// @dev address of the token that is redeemed
+    /// @dev address of the ERC20 token that is returned on ERC5095 redemption
     address public override immutable underlying;
     
     //////////OPTIONAL///////////////// (Allows the calculation and distribution of yield post maturity)

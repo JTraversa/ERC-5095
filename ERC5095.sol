@@ -12,7 +12,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
     /// @dev address of the ERC20 token that is returned on ERC5095 redemption
     address public override immutable underlying;
     
-    //////////OPTIONAL///////////////// (Allows the calculation and distribution of yield post maturity)
+    /////////////OPTIONAL///////////////// (Allows the calculation and distribution of yield post maturity)
     /// @dev address of a cToken
     address public immutable cToken;
     /// @dev address and interface for an external custody contract (necessary for some project's backwards compatability)
@@ -88,7 +88,6 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
     }
     /// @notice At or after maturity, Burns principalAmount from `owner` and sends exactly `underlyingAmount` of underlying tokens to `receiver`.
     /// @param underlyingAmount The amount of underlying tokens withdrawn
-    /// @param owner The owner of the principal tokens being redeemed
     /// @param receiver The receiver of the underlying tokens being withdrawn
     /// @return principalAmount The amount of principal tokens burnt by the withdrawal
     function withdraw(uint256 underlyingAmount, address receiver) external override returns (uint256 principalAmount){
@@ -99,12 +98,11 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
             maturityRate = adapter.exchangeRateCurrent(cToken);
             return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, underlyingAmount);
         }
-        // some 5095 tokens may have custody of underlying and can just burn PTs and transfer underlying out, while others rely on external custody
-        return redeemer.authRedeem(underlying, maturity, owner, receiver, (underlyingAmount * maturityRate / adapter.exchangeRateCurrent(cToken)));
+        // some 5095 tokens may have custody of underlying and can can just burn PTs and transfer underlying out, while others rely on external custody
+        return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, (underlyingAmount * maturityRate / adapter.exchangeRateCurrent(cToken)));
     }
     /// @notice At or after maturity, burns exactly `principalAmount` of Principal Tokens from `owner` and sends underlyingAmount of underlying tokens to `receiver`.
     /// @param principalAmount The amount of principal tokens being redeemed
-    /// @param owner The owner of the principal tokens being redeemed
     /// @param receiver The receiver of the underlying tokens being withdrawn
     /// @return underlyingAmount The amount of underlying tokens distributed by the redemption
     function redeem(uint256 principalAmount, address receiver) external override returns (uint256 underlyingAmount){

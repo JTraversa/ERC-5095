@@ -91,13 +91,13 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
     /// @param owner The owner of the principal tokens being redeemed
     /// @param receiver The receiver of the underlying tokens being withdrawn
     /// @return principalAmount The amount of principal tokens burnt by the withdrawal
-    function withdraw(uint256 underlyingAmount, address owner, address receiver) external override returns (uint256 principalAmount){
+    function withdraw(uint256 underlyingAmount, address receiver) external override returns (uint256 principalAmount){
         if (maturityRate == 0) {
             if (block.timestamp < maturity) {
                 revert Maturity(maturity);
             }
             maturityRate = adapter.exchangeRateCurrent(cToken);
-            return redeemer.authRedeem(underlying, maturity, owner, receiver, underlyingAmount);
+            return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, underlyingAmount);
         }
         // some 5095 tokens may have custody of underlying and can just burn PTs and transfer underlying out, while others rely on external custody
         return redeemer.authRedeem(underlying, maturity, owner, receiver, (underlyingAmount * maturityRate / adapter.exchangeRateCurrent(cToken)));
@@ -107,7 +107,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
     /// @param owner The owner of the principal tokens being redeemed
     /// @param receiver The receiver of the underlying tokens being withdrawn
     /// @return underlyingAmount The amount of underlying tokens distributed by the redemption
-    function redeem(uint256 principalAmount, address owner, address receiver) external override returns (uint256 underlyingAmount){
+    function redeem(uint256 principalAmount, address receiver) external override returns (uint256 underlyingAmount){
         if (maturityRate == 0) {
             if (block.timestamp < maturity) {
                 revert Maturity(maturity);
@@ -115,6 +115,6 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
             maturityRate = adapter.exchangeRateCurrent(cToken);
         }
         // some 5095 tokens may have custody of underlying and can can just burn PTs and transfer underlying out, while others rely on external custody
-        return redeemer.authRedeem(underlying, maturity, owner, receiver, principalAmount);
+        return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, principalAmount);
     }
 }

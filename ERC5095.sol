@@ -22,6 +22,8 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
     /// @dev benchmark `exchangeRate` at maturity
     uint256 public override maturityRate;
 
+    event Matured(uint256 timestamp, uint256 exchangeRate);
+
     error Maturity(uint256 timestamp);  
 
     constructor(address _underlying, uint256 _maturity, address _cToken, address _adapter, address _redeemer) {
@@ -96,6 +98,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
                 revert Maturity(maturity);
             }
             maturityRate = adapter.exchangeRateCurrent(cToken);
+            emit Matured(block.timestamp, maturityRate);
             return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, underlyingAmount);
         }
         // some 5095 tokens may have custody of underlying and can can just burn PTs and transfer underlying out, while others rely on external custody
@@ -111,6 +114,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
                 revert Maturity(maturity);
             }
             maturityRate = adapter.exchangeRateCurrent(cToken);
+            emit Matured(block.timestamp, maturityRate);
         }
         // some 5095 tokens may have custody of underlying and can can just burn PTs and transfer underlying out, while others rely on external custody
         return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, principalAmount);

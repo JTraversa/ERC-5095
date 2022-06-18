@@ -2,7 +2,6 @@
 pragma solidity ^0.8.4;
 
 import "./ERC/ERC20Permit.sol";
-import "./Interfaces/IAdapter.sol"; 
 import "./Interfaces/IERC5095.sol";  
 import "./Interfaces/IRedeemer.sol";
 

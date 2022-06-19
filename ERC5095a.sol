@@ -92,23 +92,35 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
     /// @param underlyingAmount The amount of underlying tokens withdrawn
     /// @param receiver The receiver of the underlying tokens being withdrawn
     /// @return principalAmount The amount of principal tokens burnt by the withdrawal
-    function withdraw(uint256 underlyingAmount, address receiver) external override returns (uint256 principalAmount){
+    function withdraw(uint256 underlyingAmount, address receiver, address holder) external override returns (uint256 principalAmount){
         if (maturityRate == 0) {
             if (block.timestamp < maturity) {
                 revert Maturity(maturity);
             }
             maturityRate = adapter.exchangeRateCurrent(cToken);
             emit Matured(block.timestamp, maturityRate);
-            return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, underlyingAmount);
-        }
         // some 5095 tokens may have custody of underlying and can can just burn PTs and transfer underlying out, while others rely on external custody
-        return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, (underlyingAmount * maturityRate / adapter.exchangeRateCurrent(cToken)));
+            if (holder == msg.sender) {
+                return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, underlyingAmount);
+            }
+            else {
+                require(_allowance[holder][msg.sender] >= underlyingAmount, 'not enough approvals');
+                return redeemer.authRedeem(underlying, maturity, holder, receiver, underlyingAmount);     
+            }
+        }
+        if (holder == msg.sender) {
+            return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, this.previewWithdraw(underlyingAmount));
+        }
+        else {
+            require(_allowance[holder][msg.sender] >= underlyingAmount, 'not enough approvals');
+            return redeemer.authRedeem(underlying, maturity, holder, receiver, this.previewWithdraw(underlyingAmount));     
+        }
     }
     /// @notice At or after maturity, burns exactly `principalAmount` of Principal Tokens from `owner` and sends underlyingAmount of underlying tokens to `receiver`.
     /// @param principalAmount The amount of principal tokens being redeemed
     /// @param receiver The receiver of the underlying tokens being withdrawn
     /// @return underlyingAmount The amount of underlying tokens distributed by the redemption
-    function redeem(uint256 principalAmount, address receiver) external override returns (uint256 underlyingAmount){
+    function redeem(uint256 principalAmount, address receiver, address holder) external override returns (uint256 underlyingAmount){
         if (maturityRate == 0) {
             if (block.timestamp < maturity) {
                 revert Maturity(maturity);
@@ -117,6 +129,12 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
             emit Matured(block.timestamp, maturityRate);
         }
         // some 5095 tokens may have custody of underlying and can can just burn PTs and transfer underlying out, while others rely on external custody
-        return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, principalAmount);
+        if (holder == msg.sender) {
+            return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, principalAmount);
+        }
+        else {
+            require(_allowance[holder][msg.sender] >= underlyingAmount, 'not enough approvals');
+            return redeemer.authRedeem(underlying, maturity, holder, receiver, principalAmount);     
+        }
     }
 }

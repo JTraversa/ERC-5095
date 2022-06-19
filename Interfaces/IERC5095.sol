@@ -16,6 +16,6 @@ interface IERC5095 {
     function maxWithdraw(address owner) external view returns (uint256);
     function previewWithdraw(uint256 principalAmount) external view returns (uint256);  
 
-    function withdraw(uint256 underlyingAmount, address receiver) external returns (uint256);
-    function redeem(uint256 principalAmount, address receiver) external returns (uint256);
+    function withdraw(uint256 underlyingAmount, address receiver, address owner) external returns (uint256);
+    function redeem(uint256 principalAmount, address receiver, address owner) external returns (uint256);
 }

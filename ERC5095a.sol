@@ -109,13 +109,14 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
                 return redeemer.authRedeem(underlying, maturity, holder, receiver, underlyingAmount);     
             }
         }
+        uint256 previewAmount = this.previewWithdraw(underlyingAmount);
         if (holder == msg.sender) {
-            return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, this.previewWithdraw(underlyingAmount));
+            return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, previewAmount);
         }
         else {
-            require(_allowance[holder][msg.sender] >= underlyingAmount, 'not enough approvals');
-            _allowance[holder][msg.sender] -= underlyingAmount;
-            return redeemer.authRedeem(underlying, maturity, holder, receiver, this.previewWithdraw(underlyingAmount));     
+            require(_allowance[holder][msg.sender] >= previewAmount, 'not enough approvals');
+            _allowance[holder][msg.sender] -= previewAmount;
+            return redeemer.authRedeem(underlying, maturity, holder, receiver, previewAmount);     
         }
     }
     /// @notice At or after maturity, burns exactly `principalAmount` of Principal Tokens from `owner` and sends underlyingAmount of underlying tokens to `receiver`.
@@ -135,8 +136,8 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
             return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, principalAmount);
         }
         else {
-            require(_allowance[holder][msg.sender] >= underlyingAmount, 'not enough approvals');
-            _allowance[holder][msg.sender] -= underlyingAmount;
+            require(_allowance[holder][msg.sender] >= principalAmount, 'not enough approvals');
+            _allowance[holder][msg.sender] -= principalAmount;
             return redeemer.authRedeem(underlying, maturity, holder, receiver, principalAmount);     
         }
     }

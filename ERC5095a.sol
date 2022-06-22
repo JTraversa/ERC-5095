@@ -105,6 +105,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
             }
             else {
                 require(_allowance[holder][msg.sender] >= underlyingAmount, 'not enough approvals');
+                _allowance[holder][msg.sender] -= underlyingAmount;
                 return redeemer.authRedeem(underlying, maturity, holder, receiver, underlyingAmount);     
             }
         }
@@ -113,6 +114,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         }
         else {
             require(_allowance[holder][msg.sender] >= underlyingAmount, 'not enough approvals');
+            _allowance[holder][msg.sender] -= underlyingAmount;
             return redeemer.authRedeem(underlying, maturity, holder, receiver, this.previewWithdraw(underlyingAmount));     
         }
     }
@@ -134,6 +136,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         }
         else {
             require(_allowance[holder][msg.sender] >= underlyingAmount, 'not enough approvals');
+            _allowance[holder][msg.sender] -= underlyingAmount;
             return redeemer.authRedeem(underlying, maturity, holder, receiver, principalAmount);     
         }
     }

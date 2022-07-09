@@ -6,6 +6,8 @@ import "./Interfaces/IAdapter.sol";
 import "./Interfaces/IERC5095.sol";  
 import "./Interfaces/IRedeemer.sol";
 
+// Utilizing an external custody contract to allow for backwards compatability with some projects.
+// Assumes interest generated post maturity using an external "adapter" contract.
 abstract contract ERC5095 is ERC20Permit, IERC5095 {
     /// @dev unix timestamp when the ERC5095 token can be redeemed
     uint256 public override immutable maturity;

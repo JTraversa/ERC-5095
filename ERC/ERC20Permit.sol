@@ -20,6 +20,10 @@ abstract contract ERC20Permit is ERC20, IERC2612 {
     bytes32 private immutable _DOMAIN_SEPARATOR;
     uint256 public immutable deploymentChainId;
 
+    error Invalid(address signer, address owner);
+
+    error Deadline(uint256 deadline, uint256 timestamp);
+
     constructor(string memory name_, string memory symbol_, uint8 decimals_) ERC20(name_, symbol_, decimals_) {
         deploymentChainId = block.chainid;
         _DOMAIN_SEPARATOR = _calculateDomainSeparator(block.chainid);
@@ -53,7 +57,9 @@ abstract contract ERC20Permit is ERC20, IERC2612 {
      * set to uint(-1), so it should be seen as an optional parameter
      */
     function permit(address owner, address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external virtual override {
-        require(deadline >= block.timestamp, "ERC20Permit: expired deadline");
+        if (block.timestamp > deadline) {
+            revert Deadline(deadline, block.timestamp);
+        }
 
         bytes32 hashStruct = keccak256(
             abi.encode(
@@ -75,10 +81,9 @@ abstract contract ERC20Permit is ERC20, IERC2612 {
         );
 
         address signer = ecrecover(hash, v, r, s);
-        require(
-            signer != address(0) && signer == owner,
-            "ERC20Permit: invalid signature"
-        );
+        if (signer != address(0) && signer != owner) {
+            revert Invalid(signer, owner);
+        }
 
         _setAllowance(owner, spender, amount);
     }

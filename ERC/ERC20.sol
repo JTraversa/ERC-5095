@@ -33,6 +33,10 @@ contract ERC20 is IERC20Metadata {
     string                                            public override symbol = "???";
     uint8                                             public override decimals = 18;
 
+    error Balance(uint256 balance, uint256 amount);
+
+    error Approve(uint256 approval, uint256 amount);
+
     /**
      *  @dev Sets the values for {name}, {symbol} and {decimals}.
      */
@@ -113,8 +117,11 @@ contract ERC20 is IERC20Metadata {
     /// if_succeeds {:msg "Transfer - dst increase"} _balanceOf[dst] >= old(_balanceOf[dst]);
     /// if_succeeds {:msg "Transfer - supply"} old(_balanceOf[src]) + old(_balanceOf[dst]) == _balanceOf[src] + _balanceOf[dst];
     function _transfer(address src, address dst, uint wad) internal virtual returns (bool) {
-        require(_balanceOf[src] >= wad, "ERC20: Insufficient balance");
-        unchecked { _balanceOf[src] = _balanceOf[src] - wad; }
+        uint balance = _balanceOf[src];
+        if (balance >= wad) {
+            revert Balance(balance, wad);
+        }
+        unchecked { _balanceOf[src] = balance - wad; }
         _balanceOf[dst] = _balanceOf[dst] + wad;
 
         emit Transfer(src, dst, wad);
@@ -149,7 +156,9 @@ contract ERC20 is IERC20Metadata {
         if (src != msg.sender) {
             uint256 allowed = _allowance[src][msg.sender];
             if (allowed != type(uint).max) {
-                require(allowed >= wad, "ERC20: Insufficient approval");
+                if (allowed < wad) {
+                    revert Approve(allowed, wad);
+                }
                 unchecked { _setAllowance(src, msg.sender, allowed - wad); }
             }
         }
@@ -186,7 +195,9 @@ contract ERC20 is IERC20Metadata {
     /// if_succeeds {:msg "Burn - supply underflow"} old(_totalSupply) <= _totalSupply;
     function _burn(address src, uint wad) internal virtual returns (bool) {
         unchecked {
-            require(_balanceOf[src] >= wad, "ERC20: Insufficient balance");
+            if (_balanceOf[src] < wad) {
+                revert Balance(_balanceOf[src], wad);
+            }
             _balanceOf[src] = _balanceOf[src] - wad;
             _totalSupply = _totalSupply - wad;
             emit Transfer(src, address(0), wad);

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./ERC/ERC20Permit.sol";
+import "./ERC/ERC20.sol";
 import "./Interfaces/IERC5095.sol";  
 import "./Interfaces/IRedeemer.sol";
 
 // Utilizing an external custody contract to allow for backwards compatability with some projects.
 // Assumes no external interest generation post maturity on deposits
-abstract contract ERC5095 is ERC20Permit, IERC5095 {
+abstract contract ERC5095 is ERC20, IERC5095 {
     /// @dev unix timestamp when the ERC5095 token can be redeemed
     uint256 public override immutable maturity;
     /// @dev address of the ERC20 token that is returned on ERC5095 redemption
@@ -21,7 +21,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
 
     error Maturity(uint256 timestamp);  
 
-    error Approval(uint256 approved, uint256 amount);
+    error Approvals(uint256 approved, uint256 amount);
 
     constructor(address _underlying, uint256 _maturity, address _redeemer) {
         underlying = _underlying;
@@ -54,7 +54,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         if (block.timestamp < maturity) {
             return 0;
         }
-        return (_balanceOf[owner]);
+        return (balanceOf[owner]);
     }
     /// @notice Post maturity simulates the effects of redeemption at the current block. Returns 0 pre-maturity.
     /// @param principalAmount the amount of principal tokens redeemed in the simulation
@@ -72,7 +72,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         if (block.timestamp < maturity) {
             return 0;
         }
-        return (_balanceOf[owner]);
+        return (balanceOf[owner]);
     }
     /// @notice Post maturity simulates the effects of withdrawal at the current block. Returns 0 pre-maturity.
     /// @param underlyingAmount the amount of underlying tokens withdrawn in the simulation
@@ -95,11 +95,11 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
             return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, underlyingAmount);
         }
         else {
-            uint256 allowance = _allowance[holder][msg.sender];
-            if (allowance >= underlyingAmount) {
-                revert Approval(allowance, underlyingAmount);
+            uint256 allowed = allowance[holder][msg.sender];
+            if (allowed >= underlyingAmount) {
+                revert Approvals(allowed, underlyingAmount);
             }
-            _allowance[holder][msg.sender] -= underlyingAmount;
+            allowance[holder][msg.sender] -= underlyingAmount;
             return redeemer.authRedeem(underlying, maturity, holder, receiver, underlyingAmount);     
         }
     }
@@ -114,11 +114,11 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
             return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, principalAmount);
         }
         else {
-            uint256 allowance = _allowance[holder][msg.sender];
-            if (allowance >= principalAmount) {
-                revert Approval(allowance, principalAmount);
+            uint256 allowed = allowance[holder][msg.sender];
+            if (allowed >= principalAmount) {
+                revert Approvals(allowed, principalAmount);
             }
-            _allowance[holder][msg.sender] -= principalAmount;
+            allowance[holder][msg.sender] -= principalAmount;
             return redeemer.authRedeem(underlying, maturity, holder, receiver, principalAmount);     
         }
     }

@@ -14,13 +14,17 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
     /// @dev address of the ERC20 token that is returned on ERC5095 redemption
     address public override immutable underlying;
     
+    error Exception(uint8, uint256, uint256, address, address);
+
     /////////////OPTIONAL///////////////// (Allows the calculation and distribution of yield post maturity)
     /// @dev address and interface for an external custody contract (necessary for some project's backwards compatability)
     IRedeemer public immutable redeemer;
 
     event Matured(uint256 timestamp);
 
-    error Maturity(uint256 timestamp);  
+    error Maturity(uint256 timestamp);
+
+    error Approval(uint256 approved, uint256 amount);
 
     constructor(address _underlying, uint256 _maturity, address _redeemer) {
         underlying = _underlying;
@@ -97,7 +101,10 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         }
         else {
             _burn(holder, underlyingAmount);
-            require(_allowance[holder][msg.sender] >= underlyingAmount, 'not enough approvals');
+            uint256 allowance = _allowance[holder][msg.sender];
+            if (allowance >= underlyingAmount) {
+                revert Approval(allowance, underlyingAmount);
+            }
             _allowance[holder][msg.sender] -= underlyingAmount;
             SafeTransferLib.safeTransfer(ERC20(underlying), receiver, underlyingAmount);
             return underlyingAmount;     
@@ -117,7 +124,10 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
         }
         else {
             _burn(holder, principalAmount);
-            require(_allowance[holder][msg.sender] >= principalAmount, 'not enough approvals');
+            uint256 allowance = _allowance[holder][msg.sender];
+            if (allowance >= principalAmount) {
+                revert Approval(allowance, principalAmount);
+            }
             _allowance[holder][msg.sender] -= principalAmount;
             SafeTransferLib.safeTransfer(ERC20(underlying), receiver, principalAmount);
             return principalAmount;     

@@ -28,6 +28,8 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
 
     error Maturity(uint256 timestamp);  
 
+    error Approval(uint256 approved, uint256 amount);
+
     constructor(address _underlying, uint256 _maturity, address _cToken, uint8 _protocol, address _redeemer) {
         underlying = _underlying;
         maturity = _maturity;
@@ -111,7 +113,10 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
                 return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, previewAmount);
             }
             else {
-                require(_allowance[holder][msg.sender] >= previewAmount, 'not enough approvals');
+                uint256 allowance = _allowance[holder][msg.sender];
+                if (allowance >= previewAmount) {
+                    revert Approval(allowance, previewAmount);
+                }
                 _allowance[holder][msg.sender] -= previewAmount;
                 return redeemer.authRedeem(underlying, maturity, holder, receiver, previewAmount);     
             }
@@ -122,7 +127,10 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
             return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, previewAmount);
         }
         else {
-            require(_allowance[holder][msg.sender] >= previewAmount, 'not enough approvals');
+            uint256 allowance = _allowance[holder][msg.sender];
+            if (allowance >= previewAmount) {
+                revert Approval(allowance, previewAmount);
+            }
             _allowance[holder][msg.sender] -= previewAmount;
             return redeemer.authRedeem(underlying, maturity, holder, receiver, previewAmount);     
         }
@@ -145,7 +153,10 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
             return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, principalAmount);
         }
         else {
-            require(_allowance[holder][msg.sender] >= principalAmount, 'not enough approvals');
+            uint256 allowance = _allowance[holder][msg.sender];
+            if (allowance >= principalAmount) {
+                revert Approval(allowance, principalAmount);
+            }
             _allowance[holder][msg.sender] -= principalAmount;
             return redeemer.authRedeem(underlying, maturity, holder, receiver, principalAmount);     
         }

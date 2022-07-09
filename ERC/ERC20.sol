@@ -2,207 +2,214 @@
 // Inspired on token.sol from DappHub. Natspec adpated from OpenZeppelin.
 
 pragma solidity ^0.8.0;
-import "../Interfaces/IERC20Metadata.sol";
 
-/**
- * @dev Implementation of the {IERC20} interface.
- *
- * This implementation is agnostic to the way tokens are created. This means
- * that a supply mechanism has to be added in a derived contract using {_mint}.
- *
- * We have followed general OpenZeppelin guidelines: functions revert instead
- * of returning `false` on failure. This behavior is nonetheless conventional
- * and does not conflict with the expectations of ERC20 applications.
- *
- * Additionally, an {Approval} event is emitted on calls to {transferFrom}.
- * This allows applications to reconstruct the allowance for all accounts just
- * by listening to said events. Other implementations of the EIP may not emit
- * these events, as it isn't required by the specification.
- * 
- * Calls to {transferFrom} do not check for allowance if the caller is the owner
- * of the funds. This allows to reduce the number of approvals that are necessary.
- *
- * Finally, {transferFrom} does not decrease the allowance if it is set to
- * type(uint256).max. This reduces the gas costs without any likely impact.
- */
-contract ERC20 is IERC20Metadata {
-    uint256                                           internal  _totalSupply;
-    mapping (address => uint256)                      internal  _balanceOf;
-    mapping (address => mapping (address => uint256)) internal  _allowance;
-    string                                            public override name = "???";
-    string                                            public override symbol = "???";
-    uint8                                             public override decimals = 18;
+contract ERC20 {
+    /*//////////////////////////////////////////////////////////////
+                                 EVENTS
+    //////////////////////////////////////////////////////////////*/
 
-    error Balance(uint256 balance, uint256 amount);
+    event Transfer(address indexed from, address indexed to, uint256 amount);
 
-    error Approve(uint256 approval, uint256 amount);
+    event Approval(address indexed owner, address indexed spender, uint256 amount);
 
-    /**
-     *  @dev Sets the values for {name}, {symbol} and {decimals}.
-     */
-    constructor(string memory name_, string memory symbol_, uint8 decimals_) {
-        name = name_;
-        symbol = symbol_;
-        decimals = decimals_;
+    /*//////////////////////////////////////////////////////////////
+                            METADATA STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    string public name;
+
+    string public symbol;
+
+    uint8 public immutable decimals;
+
+    /*//////////////////////////////////////////////////////////////
+                              ERC20 STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    uint256 public totalSupply;
+
+    mapping(address => uint256) public balanceOf;
+
+    mapping(address => mapping(address => uint256)) public allowance;
+
+    /*//////////////////////////////////////////////////////////////
+                            EIP-2612 STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    uint256 internal immutable INITIAL_CHAIN_ID;
+
+    bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
+
+    mapping(address => uint256) public nonces;
+
+    /*//////////////////////////////////////////////////////////////
+                            CUSTOM ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error Invalid(address signer, address owner);
+
+    error Deadline(uint256 deadline, uint256 timestamp);
+
+    /*//////////////////////////////////////////////////////////////
+                               CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals
+    ) {
+        name = _name;
+        symbol = _symbol;
+        decimals = _decimals;
+
+        INITIAL_CHAIN_ID = block.chainid;
+        INITIAL_DOMAIN_SEPARATOR = computeDomainSeparator();
     }
 
-    /**
-     * @dev See {IERC20-totalSupply}.
-     */
-    function totalSupply() external view virtual override returns (uint256) {
-        return _totalSupply;
-    }
+    /*//////////////////////////////////////////////////////////////
+                               ERC20 LOGIC
+    //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev See {IERC20-balanceOf}.
-     */
-    function balanceOf(address guy) external view virtual override returns (uint256) {
-        return _balanceOf[guy];
-    }
+    function approve(address spender, uint256 amount) public virtual returns (bool) {
+        allowance[msg.sender][spender] = amount;
 
-    /**
-     * @dev See {IERC20-allowance}.
-     */
-    function allowance(address owner, address spender) external view virtual override returns (uint256) {
-        return _allowance[owner][spender];
-    }
-
-    /**
-     * @dev See {IERC20-approve}.
-     */
-    function approve(address spender, uint wad) external virtual override returns (bool) {
-        return _setAllowance(msg.sender, spender, wad);
-    }
-
-    /**
-     * @dev See {IERC20-transfer}.
-     *
-     * Requirements:
-     *
-     * - the caller must have a balance of at least `wad`.
-     */
-    function transfer(address dst, uint wad) external virtual override returns (bool) {
-        return _transfer(msg.sender, dst, wad);
-    }
-
-    /**
-     * @dev See {IERC20-transferFrom}.
-     *
-     * Emits an {Approval} event indicating the updated allowance. This is not
-     * required by the EIP. See the note at the beginning of {ERC20}.
-     *
-     * Requirements:
-     *
-     * - `src` must have a balance of at least `wad`.
-     * - the caller is not `src`, it must have allowance for ``src``'s tokens of at least
-     * `wad`.
-     */
-    /// if_succeeds {:msg "TransferFrom - decrease allowance"} msg.sender != src ==> old(_allowance[src][msg.sender]) >= wad;
-    function transferFrom(address src, address dst, uint wad) external virtual override returns (bool) {
-        _decreaseAllowance(src, wad);
-
-        return _transfer(src, dst, wad);
-    }
-
-    /**
-     * @dev Moves tokens `wad` from `src` to `dst`.
-     * 
-     * Emits a {Transfer} event.
-     *
-     * Requirements:
-     *
-     * - `src` must have a balance of at least `amount`.
-     */
-    /// if_succeeds {:msg "Transfer - src decrease"} old(_balanceOf[src]) >= _balanceOf[src];
-    /// if_succeeds {:msg "Transfer - dst increase"} _balanceOf[dst] >= old(_balanceOf[dst]);
-    /// if_succeeds {:msg "Transfer - supply"} old(_balanceOf[src]) + old(_balanceOf[dst]) == _balanceOf[src] + _balanceOf[dst];
-    function _transfer(address src, address dst, uint wad) internal virtual returns (bool) {
-        uint balance = _balanceOf[src];
-        if (balance >= wad) {
-            revert Balance(balance, wad);
-        }
-        unchecked { _balanceOf[src] = balance - wad; }
-        _balanceOf[dst] = _balanceOf[dst] + wad;
-
-        emit Transfer(src, dst, wad);
+        emit Approval(msg.sender, spender, amount);
 
         return true;
     }
 
-    /**
-     * @dev Sets the allowance granted to `spender` by `owner`.
-     *
-     * Emits an {Approval} event indicating the updated allowance.
-     */
-    function _setAllowance(address owner, address spender, uint wad) internal virtual returns (bool) {
-        _allowance[owner][spender] = wad;
-        emit Approval(owner, spender, wad);
+    function transfer(address to, uint256 amount) public virtual returns (bool) {
+        balanceOf[msg.sender] -= amount;
 
-        return true;
-    }
-
-    /**
-     * @dev Decreases the allowance granted to the caller by `src`, unless src == msg.sender or _allowance[src][msg.sender] == MAX
-     *
-     * Emits an {Approval} event indicating the updated allowance, if the allowance is updated.
-     *
-     * Requirements:
-     *
-     * - `spender` must have allowance for the caller of at least
-     * `wad`, unless src == msg.sender
-     */
-    /// if_succeeds {:msg "Decrease allowance - underflow"} old(_allowance[src][msg.sender]) <= _allowance[src][msg.sender];
-    function _decreaseAllowance(address src, uint wad) internal virtual returns (bool) {
-        if (src != msg.sender) {
-            uint256 allowed = _allowance[src][msg.sender];
-            if (allowed != type(uint).max) {
-                if (allowed < wad) {
-                    revert Approve(allowed, wad);
-                }
-                unchecked { _setAllowance(src, msg.sender, allowed - wad); }
-            }
-        }
-
-        return true;
-    }
-
-    /** @dev Creates `wad` tokens and assigns them to `dst`, increasing
-     * the total supply.
-     *
-     * Emits a {Transfer} event with `from` set to the zero address.
-     */
-    /// if_succeeds {:msg "Mint - balance overflow"} old(_balanceOf[dst]) >= _balanceOf[dst];
-    /// if_succeeds {:msg "Mint - supply overflow"} old(_totalSupply) >= _totalSupply;
-    function _mint(address dst, uint wad) internal virtual returns (bool) {
-        _balanceOf[dst] = _balanceOf[dst] + wad;
-        _totalSupply = _totalSupply + wad;
-        emit Transfer(address(0), dst, wad);
-
-        return true;
-    }
-
-    /**
-     * @dev Destroys `wad` tokens from `src`, reducing the
-     * total supply.
-     *
-     * Emits a {Transfer} event with `to` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - `src` must have at least `wad` tokens.
-     */
-    /// if_succeeds {:msg "Burn - balance underflow"} old(_balanceOf[src]) <= _balanceOf[src];
-    /// if_succeeds {:msg "Burn - supply underflow"} old(_totalSupply) <= _totalSupply;
-    function _burn(address src, uint wad) internal virtual returns (bool) {
+        // Cannot overflow because the sum of all user
+        // balances can't exceed the max uint256 value.
         unchecked {
-            if (_balanceOf[src] < wad) {
-                revert Balance(_balanceOf[src], wad);
-            }
-            _balanceOf[src] = _balanceOf[src] - wad;
-            _totalSupply = _totalSupply - wad;
-            emit Transfer(src, address(0), wad);
+            balanceOf[to] += amount;
         }
 
+        emit Transfer(msg.sender, to, amount);
+
         return true;
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public virtual returns (bool) {
+        uint256 allowed = allowance[from][msg.sender]; // Saves gas for limited approvals.
+
+        if (allowed != type(uint256).max) allowance[from][msg.sender] = allowed - amount;
+
+        balanceOf[from] -= amount;
+
+        // Cannot overflow because the sum of all user
+        // balances can't exceed the max uint256 value.
+        unchecked {
+            balanceOf[to] += amount;
+        }
+
+        emit Transfer(from, to, amount);
+
+        return true;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                             EIP-2612 LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public virtual {
+        if (deadline < block.timestamp) {
+            revert Deadline(deadline, block.timestamp);
+        }
+        // Unchecked because the only math done is incrementing
+        // the owner's nonce which cannot realistically overflow.
+        unchecked {
+            address recoveredAddress = ecrecover(
+                keccak256(
+                    abi.encodePacked(
+                        "\x19\x01",
+                        DOMAIN_SEPARATOR(),
+                        keccak256(
+                            abi.encode(
+                                keccak256(
+                                    "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+                                ),
+                                owner,
+                                spender,
+                                value,
+                                nonces[owner]++,
+                                deadline
+                            )
+                        )
+                    )
+                ),
+                v,
+                r,
+                s
+            );
+
+            if (recoveredAddress != address(0) && recoveredAddress != owner) {
+                revert Invalid(msg.sender, owner);
+            }
+
+            allowance[recoveredAddress][spender] = value;
+        }
+
+        emit Approval(owner, spender, value);
+    }
+
+    function DOMAIN_SEPARATOR() public view virtual returns (bytes32) {
+        return block.chainid == INITIAL_CHAIN_ID ? INITIAL_DOMAIN_SEPARATOR : computeDomainSeparator();
+    }
+
+    function computeDomainSeparator() internal view virtual returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                    keccak256(bytes(name)),
+                    keccak256("1"),
+                    block.chainid,
+                    address(this)
+                )
+            );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL MINT/BURN LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function _mint(address to, uint256 amount) internal virtual {
+        totalSupply += amount;
+
+        // Cannot overflow because the sum of all user
+        // balances can't exceed the max uint256 value.
+        unchecked {
+            balanceOf[to] += amount;
+        }
+
+        emit Transfer(address(0), to, amount);
+    }
+
+    function _burn(address from, uint256 amount) internal virtual {
+        balanceOf[from] -= amount;
+
+        // Cannot underflow because a user's balance
+        // will never be larger than the total supply.
+        unchecked {
+            totalSupply -= amount;
+        }
+
+        emit Transfer(from, address(0), amount);
     }
 }

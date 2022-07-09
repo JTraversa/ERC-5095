@@ -94,13 +94,17 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
     /// @return principalAmount The amount of principal tokens burnt by the withdrawal
     function withdraw(uint256 underlyingAmount, address receiver, address holder) external override returns (uint256 principalAmount){
         uint256 previewAmount = this.previewWithdraw(underlyingAmount);    
+        // If not matured yet
         if (maturityRate == 0) {
+            // If maturity is not yet reached
             if (block.timestamp < maturity) {
                 revert Maturity(maturity);
             }
+            // If not reverting, "mature" the market by setting the maturityRate and emitting event
             maturityRate = Compounding.exchangeRate(protocol, cToken);
             emit Matured(block.timestamp, maturityRate);
-        // some 5095 tokens may have custody of underlying and can can just burn PTs and transfer underlying out, while others rely on external custody
+        // Transfer logic
+        // If holder is msg.sender, skip approval check
             if (holder == msg.sender) {
                 return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, previewAmount);
             }
@@ -110,6 +114,8 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
                 return redeemer.authRedeem(underlying, maturity, holder, receiver, previewAmount);     
             }
         }
+        // If already matured
+        // If holder is msg.sender, skip approval check
         if (holder == msg.sender) {
             return redeemer.authRedeem(underlying, maturity, msg.sender, receiver, previewAmount);
         }
@@ -124,6 +130,7 @@ abstract contract ERC5095 is ERC20Permit, IERC5095 {
     /// @param receiver The receiver of the underlying tokens being withdrawn
     /// @return underlyingAmount The amount of underlying tokens distributed by the redemption
     function redeem(uint256 principalAmount, address receiver, address holder) external override returns (uint256 underlyingAmount){
+        
         if (maturityRate == 0) {
             if (block.timestamp < maturity) {
                 revert Maturity(maturity);
